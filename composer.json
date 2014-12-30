@@ -1,0 +1,15 @@
+{
+    "name": "andersondanilo/modelform",
+    "description": "Laravel 4 implementation of Django Form",
+    "keywords": ["modelform", "formbuilder", "form", "laravel", "django"],
+    "license": "MIT",
+    "require": {
+        "laravel/framework": ">=4.0.0"
+	},
+	"autoload": {
+        "psr-4": {
+            "ModelForm": "src"
+        }
+    },
+    "minimum-stability": "stable"
+}
