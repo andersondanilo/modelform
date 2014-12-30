@@ -2,12 +2,12 @@
 
 namespace ModelForm\Fields;
 
-use Form; // use laravel form builder
+use Illuminate\Support\Facades\Form;
 
 class CharField extends Field
 {
     public function __toString()
     {
-        return Form::text($this->name, $this->value, $this->attributes);
+        return Form::text($this->htmlName, $this->value, $this->attributes);
     }
 }
