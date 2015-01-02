@@ -3,24 +3,36 @@
 namespace ModelForm;
 
 use Illuminate\Support\Facades\Validator,
-    ArrayAccess,
-    IteratorAggregate;
+    Illuminate\Support\Collection;
 
-class Form implements \ArrayAccess, \IteratorAggregate
+class Form extends Collection
 {
     public $_data = array();
-    public $_instance;
-    public $_fields = array();
+    public $_model;
     public $_prefix;
     public $_validator = null;
+    public $_formSet = null;
+    public $_formSetPos = null;
+    public $_isKnockout = false;
 
     public function __construct($params=array())
     {
         if(isset($params['prefix']))
             $this->setPrefix($params['prefix']);
 
-        if(isset($params['instance']))
-            $this->setInstance($params['instance']);
+        if(isset($params['model']))
+            $this->setModel($params['model']);
+        else {
+            $newModel = $this->makeModel();
+            if($newModel)
+                $this->setModel($newModel);
+        }
+
+        if($this->_model && $this->_model->getKeyName())
+        {
+            $primaryKey = $this->_model->getKeyName();
+            $this->$primaryKey = new Fields\CharField();
+        }
 
         if(isset($params['data']))
             $this->setData($params['data']);
@@ -28,7 +40,7 @@ class Form implements \ArrayAccess, \IteratorAggregate
         if(isset($params['validator']))
             $this->setValidator($params['validator']);
         else
-            $this->setValidator(Validator::make($this->_data, []));
+            $this->setValidator($this->makeValidator());
 
         $this->makeFields();
     }
@@ -38,22 +50,28 @@ class Form implements \ArrayAccess, \IteratorAggregate
         $this->_data = $data;
     }
 
+    public function makeValidator()
+    {
+        return Validator::make($this->_data, []);
+    }
+
     public function getData()
     {
         return $this->_data;
     }
 
-    public function setInstance($instance)
+    public function setModel($model)
     {
-        $this->_instance = $instance;
-        if(is_object($instance) && !$this->_prefix) {
-            $this->setPrefix(basename(get_class($instance)).'_');
+        $this->_model = $model;
+        if(is_object($model) && !$this->_prefix) {
+            $aux = explode('\\',get_class($model));
+            $this->setPrefix(array_pop($aux));
         }
     }
 
-    public function getInstance()
+    public function getModel()
     {
-        return $this->_instance;
+        return $this->_model;
     }
 
     public function setPrefix($prefix) 
@@ -71,19 +89,12 @@ class Form implements \ArrayAccess, \IteratorAggregate
         return $this->_validator;
     }
 
-    public function __call($method, $args) 
-    {
-        if(array_key_exists($method, $this->_fields)) 
-            return $this->_fields[$method]($args ? $args[0] : null);
-        trigger_error("Undefined method '$method'", E_USER_ERROR);
-    }
-
     public function __set($key, $value)
     {
         if($value instanceof Fields\Field) {
             $value->form = $this;
             $value->name = $key;
-            $this->_fields[$key] = $value;
+            $this[$key] = $value;
             $this->$key = $value;
         } else {
             trigger_error("Undefined property '$key'", E_USER_ERROR);
@@ -95,37 +106,37 @@ class Form implements \ArrayAccess, \IteratorAggregate
         if(array_key_exists($name, $this->_data))
             return $this->_data[$name];
 
-        if($this->_instance)
-            return $this->_instance->$name;
+        if($this->_model)
+            return $this->_model->$name;
     }
 
-    public function offsetSet($offset, $value)
+    public function getCleanedData()
     {
-        $this->_data[$offset] = $value;
+        $result = array();
+        foreach($this as $key => $field) {
+            $result[$key] = $field->cleanedValue;
+        }
+        return $result;
     }
 
-    public function offsetExists($offset)
+    public function jsonSerialize()
     {
-        return isset($this->_data[$offset]);
+        return $this->getCleanedData();
     }
 
-    public function offsetUnset($offset) {
-        $this->_data[$offset] = null;
-    }
-
-    public function offsetGet($offset)
+    public function toJson($options=0)
     {
-        return $this->getValue($offset);
-    }
+        return json_encode($this);
+    }    
 
     public function isValid()
     {
         return $this->getValidator()->passes();
     }
 
-    public function getIterator()
+    public function makeModel() 
     {
-        return new ArrayIterator($this->_fields);
+        return null;
     }
 
 }

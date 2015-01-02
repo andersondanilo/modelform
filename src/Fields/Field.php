@@ -10,21 +10,37 @@ class Field
 {
     public $form;
     public $name;
-    public $attributes = array();
-    public $label;
-    public $widget;
+    public $_options = array();
+    public $label = '';
+
+    public $formMethods = array(
+        'input', 'text', 'textArea',
+        'password', 'hidden', 'email', 'url',
+        'file', 'textarea', 'select', 'selectRange',
+        'checkbox', 'radio'
+    );
 
     public function __construct(array $params=array())
     {
-        if(isset($params['label']))
-            $this->label = $params['label'];
-        if(isset($params['widget']))
-            $this->widget = $params['widget'];
-        if(isset($params['required']) && $params['required'])
-            $this->form->getValidator()->mergeRules($this->name, 'required');
+        foreach($params as $k => $v) {
+            $k2 = "_$k";
+            if(property_exists($this, $k))
+                $this->$k = $v;
+            else if(property_exists($this, $k2))
+                $this->$k2 = $v;
+            else
+                trigger_error("Undefined property '$k'", E_USER_ERROR);
+        }
     }
 
-    public function required()
+    public function getOptions()
+    {
+        if(is_callable($this->_options))
+            $this->_options = $this->_options();
+        return $this->_options;
+    }
+
+    public function getRequired()
     {
         $attribute = $this->name;
         $rules = $this->form->getValidator()->getRules();
@@ -35,12 +51,23 @@ class Field
         return false;
     }
 
-    public function htmlName()
+    public function getHtmlName($position=null)
     {
-        return ($this->form->_prefix ?: '') . $this->name;
+        if($this->form->_formSet && !isset($position))
+            $position = $this->form->_formSetPos;
+
+        $htmlName = $this->name;
+
+        if($position)
+            $htmlName = $position.'-'.$htmlName;
+
+        if($this->form->_prefix)
+            $htmlName = $this->form->_prefix . '-' . $htmlName;
+
+        return $htmlName;
     }
 
-    public function errors()
+    public function getErrors()
     {
         return new ModelForm\ErrorList($this->form->getValidator()->errors()->get($this->name));
     }
@@ -50,24 +77,67 @@ class Field
         switch ($name) {
             case 'value':
                 return $this->form->getValue($name);
-            case 'labelTag':
-                return $this->labelTag();
+            case 'options':
+                return $this->getOptions($name);
+            case 'cleanedValue':
+                return $this->getCleanedValue();
             case 'required':
-                return $this->required();
+                return $this->getRequired();
             case 'htmlName':
-                return $this->htmlName();
+                return $this->getHtmlName();
         }
         trigger_error("Undefined property '$name'", E_USER_ERROR);
     }
 
-    public function __invoke(array $attributes)
+    public function __set($name, $value)
     {
-        foreach($attributes as $key => $value)
-            $this->attributes[$key] = $value;
-        return $this;
+        $auxName = "_$name";
+        if(property_exists($this, $auxName))
+            $this->$auxName = $value;
+        else
+            trigger_error("Undefined property '$name'", E_USER_ERROR);
     }
 
-    public function labelTag($attributes=array())
+    public function __call($method, $arguments)
+    {
+        if(!$arguments)
+            $arguments = array();
+
+        if(in_array($method, $this->formMethods)) {
+            $realArguments = array();
+            $realArguments[] = $this->htmlName;
+            if($method == 'select')
+                $realArguments[] = $this->options;
+            if(!in_array($method, ['file', 'password']))
+                $realArguments[] = $this->value;
+
+            if(in_array($method, array('checkbox', 'radio'))) {
+                $realArguments[] = array_shift($arguments) == $this->value;
+            }
+
+            $options = array_shift($arguments);
+
+            if(!$options)
+                $options = [];
+
+            if($this->form->_isKnockout) {
+                if(isset($options['data-bind']) && $options['data-bind'])
+                    $options['data-bind'] .= ', ';
+                else
+                    $options['data-bind'] = '';
+                $options['data-bind'] .= "attr: {name: ".$this->getKnockoutName()."}";
+            }
+
+            $realArguments[] = $options;
+
+            foreach($arguments as $argument)
+                $realArguments[] = $argument;
+
+            return call_user_func_array("Form::$method", $realArguments);
+        }
+    }
+
+    public function label($attributes=array())
     {
         if($this->required()) {
             if(!isset($attributes['class']))
@@ -77,8 +147,13 @@ class Field
         return Form::label($this->name, $this->label, $attributes);
     }
 
-    public function __toString()
+    public function getCleanedValue()
     {
-        return 'field not implemented';
+        return $this->value;
+    }
+
+    public function getKnockoutName() 
+    {
+        return "'".$this->getHtmlName("'+\$index()+'")."'";
     }
 }
