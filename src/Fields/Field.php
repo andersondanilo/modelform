@@ -13,12 +13,14 @@ class Field
     public $_options = array();
     public $label = '';
 
+    /*
     public $formMethods = array(
         'input', 'text', 'textArea',
         'password', 'hidden', 'email', 'url',
         'file', 'textarea', 'select', 'selectRange',
         'checkbox', 'radio'
     );
+    */
 
     public function __construct(array $params=array())
     {
@@ -33,10 +35,17 @@ class Field
         }
     }
 
+    public function setOptions($options) {
+        $this->_options = $options;
+        return $this;
+    }
+
     public function getOptions()
     {
-        if(is_callable($this->_options))
-            $this->_options = $this->_options();
+        if(is_callable($this->_options)) {
+            $aux = $this->_options;
+            $this->_options = $aux();
+        }
         return $this->_options;
     }
 
@@ -58,7 +67,7 @@ class Field
 
         $htmlName = $this->name;
 
-        if($position)
+        if(!is_null($position))
             $htmlName = $position.'-'.$htmlName;
 
         if($this->form->_prefix)
@@ -76,9 +85,9 @@ class Field
     {
         switch ($name) {
             case 'value':
-                return $this->form->getValue($name);
+                return $this->form->getValue($this->name);
             case 'options':
-                return $this->getOptions($name);
+                return $this->getOptions();
             case 'cleanedValue':
                 return $this->getCleanedValue();
             case 'required':
@@ -103,7 +112,7 @@ class Field
         if(!$arguments)
             $arguments = array();
 
-        if(in_array($method, $this->formMethods)) {
+        //if(in_array($method, $this->formMethods)) {
             $realArguments = array();
             $realArguments[] = $this->htmlName;
             if($method == 'select')
@@ -125,7 +134,7 @@ class Field
                     $options['data-bind'] .= ', ';
                 else
                     $options['data-bind'] = '';
-                $options['data-bind'] .= "attr: {name: ".$this->getKnockoutName()."}";
+                $options['data-bind'] .= "attr: {name: ".$this->getKnockoutName()."}, value: {$this->name}";
             }
 
             $realArguments[] = $options;
@@ -134,15 +143,15 @@ class Field
                 $realArguments[] = $argument;
 
             return call_user_func_array("Form::$method", $realArguments);
-        }
+        // }
     }
 
     public function label($attributes=array())
     {
-        if($this->required()) {
+        if($this->required) {
             if(!isset($attributes['class']))
                 $attributes['class'] = '';
-            $attributes['class'] += ' required';
+            $attributes['class'] .= ' required';
         }
         return Form::label($this->name, $this->label, $attributes);
     }

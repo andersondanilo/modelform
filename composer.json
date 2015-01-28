@@ -4,11 +4,14 @@
     "keywords": ["modelform", "formbuilder", "form", "laravel", "django"],
     "license": "MIT",
     "require": {
-        "laravel/framework": ">=4.0.0"
+        "laravel/framework": ">=4.2.0"
 	},
+    "require-dev": {
+        "orchestra/testbench": "2.2.1"
+    },
 	"autoload": {
         "psr-4": {
-            "ModelForm": "src"
+            "ModelForm\\": "src"
         }
     },
     "minimum-stability": "stable"

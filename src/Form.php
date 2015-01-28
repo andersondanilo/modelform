@@ -3,7 +3,8 @@
 namespace ModelForm;
 
 use Illuminate\Support\Facades\Validator,
-    Illuminate\Support\Collection;
+    Illuminate\Support\Collection,
+    Illuminate\Support\MessageBag;
 
 class Form extends Collection
 {
@@ -19,6 +20,11 @@ class Form extends Collection
     {
         if(isset($params['prefix']))
             $this->setPrefix($params['prefix']);
+        else
+        {
+            $aux = explode('\\', get_class($this));
+            $this->setPrefix(array_pop($aux));
+        }
 
         if(isset($params['model']))
             $this->setModel($params['model']);
@@ -40,19 +46,48 @@ class Form extends Collection
         if(isset($params['validator']))
             $this->setValidator($params['validator']);
         else
-            $this->setValidator($this->makeValidator());
+            $this->setValidator($this->makeValidator($this->_data));
 
         $this->makeFields();
     }
 
-    public function setData($data)
+    public function makeFields()
     {
-        $this->_data = $data;
+        // This method should be overloaded
     }
 
-    public function makeValidator()
+    public function setData($data)
     {
-        return Validator::make($this->_data, []);
+        $this->_data = $this->decodeHtmlData($data);
+    }
+
+    public function decodeHtmlData($data) 
+    {
+        $dataAux = array();
+        foreach ($data as $key => $value)
+        {
+            if(strpos($key, $this->getPrefix()) == 0)
+            {
+                $aux = explode('-', $key);
+                array_shift($aux);
+                $correct = true;
+                if(count($aux) > 1 && is_numeric($aux[0])) {
+                    if($aux[0] != $this->_formSetPos) {
+                        $correct = false;
+                    }
+                    array_shift($aux);
+                }
+                if($correct)
+                    $key = implode('-', $aux);
+            }
+            $dataAux[$key] = $value;
+        }
+        return $dataAux;
+    }
+
+    public function makeValidator($data)
+    {
+        return Validator::make($data, []);
     }
 
     public function getData()
@@ -63,10 +98,6 @@ class Form extends Collection
     public function setModel($model)
     {
         $this->_model = $model;
-        if(is_object($model) && !$this->_prefix) {
-            $aux = explode('\\',get_class($model));
-            $this->setPrefix(array_pop($aux));
-        }
     }
 
     public function getModel()
@@ -77,6 +108,11 @@ class Form extends Collection
     public function setPrefix($prefix) 
     {
         $this->_prefix = $prefix;
+    }
+
+    public function getPrefix() 
+    {
+        return $this->_prefix;
     }
 
     public function setValidator($validator)
@@ -113,8 +149,12 @@ class Form extends Collection
     public function getCleanedData()
     {
         $result = array();
-        foreach($this as $key => $field) {
-            $result[$key] = $field->cleanedValue;
+        foreach($this as $key => $field) {       
+            $cleanedValue = $field->cleanedValue;
+            $cleanMethod = 'clean'.camel_case(ucfirst($key));
+            if(method_exists($this, $cleanMethod))
+                $cleanedValue = $this->$cleanMethod($cleanedValue);
+            $result[$key] = $cleanedValue;
         }
         return $result;
     }
@@ -134,9 +174,35 @@ class Form extends Collection
         return $this->getValidator()->passes();
     }
 
+    public function save() 
+    {
+        $model = $this->getModel();
+        $data = $this->getCleanedData();
+        unset($data[$model->getKeyName()]);
+        $model->fill($data);
+        if($this->_formSet && $this->_formSet->relation) {
+            $this->_formSet->relation->save($model);
+        }
+        else
+            $model->save();
+    }
+
     public function makeModel() 
     {
         return null;
     }
 
+    public function errors()
+    {
+        return $this->getValidator()->messages();
+    }
+
+    public static function mergeErrors($forms)
+    {
+        $args = [];
+        foreach($forms as $form)
+            $args[] = $form->errors()->toArray();
+        $messages = call_user_func_array('array_merge_recursive', $args);
+        return new MessageBag($messages);
+    }
 }
