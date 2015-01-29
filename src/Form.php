@@ -122,6 +122,7 @@ class Form extends Collection
 
     public function getValidator()
     {
+        $this->_validator->setData($this->_data);
         return $this->_validator;
     }
 

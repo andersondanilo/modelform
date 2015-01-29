@@ -62,11 +62,10 @@ class FormSet extends Collection
                 throw new \Exception("Invalid data, primary key not found");
             }
             if($primaryKey && $data[$primaryKeyEncoded]) {
-                $form = $this->makeForm();
                 $model = $this->getModelByPrimaryKey($data[$primaryKeyEncoded]);
                 if(!$model)
                     throw new \Exception("Invalid model, not exists from formset");
-                $form->setModel($model);
+                $form = $this->makeForm($model);
             }
             else
                 $form = $this->makeForm();
@@ -77,9 +76,17 @@ class FormSet extends Collection
         }
     }
 
-    public function makeForm()
+    public function makeForm($model=null)
     {
         return null;
+    }
+
+    public function getDefaultModels() {
+        if($this->query)
+            return $this->query->get();
+        else if($this->relation)
+            return $this->relation->get();
+        return [];
     }
 
     public function makeForms() {
@@ -87,19 +94,14 @@ class FormSet extends Collection
             trigger_error("forms already exists", E_USER_ERROR);
         else
         {
-            if(!$this->models) {
-                if($this->query)
-                    $this->models = $this->query->get();
-                else if($this->relation)
-                    $this->models = $this->relation->get();
-            }
-            
+            if(!$this->models)
+                $this->models = $this->getDefaultModels();
+
             if(!$this->models)
                 $this->models[] = $this->makeForm()->getModel();
 
             foreach($this->models as $model) {
-                $form = $this->makeForm();
-                $form->setModel($model);
+                $form = $this->makeForm($model);
                 $this[] = $this->configureForm($form);
             }
         }
@@ -125,11 +127,23 @@ class FormSet extends Collection
 
     public function save()
     {
+        $oldModels = $this->getDefaultModels();
         $models = array();
         foreach($this as $form) {
             $form->save();
             $models[] = $form->getModel();
         }
+
+        foreach($oldModels as $oldModel) {
+            $found = 0;
+            $primaryKey = $oldModel->getKeyName();
+            foreach($models as $newModel) {
+                if($oldModel->$primaryKey == $newModel->$primaryKey)
+                    continue 2;
+            }
+            $oldModel->delete();
+        }
+
         return $models;
     }
 

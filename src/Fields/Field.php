@@ -134,7 +134,12 @@ class Field
                     $options['data-bind'] .= ', ';
                 else
                     $options['data-bind'] = '';
-                $options['data-bind'] .= "attr: {name: ".$this->getKnockoutName()."}, value: {$this->name}";
+                $options['data-bind'] .= 'attr: {';
+                $options['data-bind'] .= 'name: '.$this->getKnockoutName();
+                if(!in_array($method, ['file', 'checkbox', 'radiobox', 'option']))
+                    $options['data-bind'] .= ', value: '.$this->name;
+                $options['data-bind'] .= '}';
+
             }
 
             $realArguments[] = $options;
