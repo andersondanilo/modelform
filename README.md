@@ -24,29 +24,29 @@ class SimpleForm extends Form
 {
     public function makeFields()
     {
-        $this->name = new CharField(['label'=>'Name']);
-        $this->age = new IntegerField(['label'=>'Name']);
+        $this->name = new CharField(['label' => 'Name']);
+        $this->age = new IntegerField(['label' => 'Age']);
     }
 }
 ```
     
-Instancializing model
+Instancializing Form
 
 ```php
-$model = new SimpleForm(['data' => Input::old() ?: Input::all()]);
+$simpleForm = new SimpleForm(['data' => Input::old() ?: Input::all()]);
 ```
     
 Rendering model in view
 
 ```php
-    {{ $informationForm->name->label() }}:
-    {{ $informationForm->name->text(['class'=>'form-control']) }}
+    {{ $simpleForm->name->label() }}:
+    {{ $simpleForm->name->text(['class' => 'form-control']) }}
 ```
     
 Acessing values after
 
 ```php
-    $name = $informationForm->name->value;
+    $name = $simpleForm->name->value;
 ```
 
 With Model and Validator
@@ -61,8 +61,8 @@ class SimpleForm extends Form
 {
     public function makeFields()
     {
-        $this->name = new CharField(['label'=>'Name']);
-        $this->age = new IntegerField(['label'=>'Name']);
+        $this->name = new CharField(['label' => 'Name']);
+        $this->age = new IntegerField(['label' => 'Age']);
     }
     
     public function makeModel()
@@ -78,4 +78,55 @@ class SimpleForm extends Form
     }
 }
 ```
+
+You can instancialize without model and then the model is created by form, or start with a already existing model.
+
+```php
+$model10 = MyModel::find(10);
+$form = new SimpleForm(['model' => $model10, 'data' => Input::old() ?: Input::all()]);
+```
+
 Validating
+
+```php
+if(!$simpleForm->isValid()) {
+    return Redirect::back()->withErrors($simpleForm->errors())->withInput();
+}
+```
+
+Saving your model
+```php
+$simpleForm->save();
+```
+
+Formsets
+--------
+```php
+use ModelForm\FormSet;
+
+class SimpleFormSet extends FormSet
+{
+    public function makeForm($model=null)
+    {
+        return new SimpleForm(['model'=>$model]);
+    }
+}
+```
+
+Create the empty formset instance:
+```php
+$simpleFormSet = new SimpleFormSet(['data' => Input::old() ?: Input::all());
+```
+
+Or create a formset filled with a model relation:
+```php
+$addressFormSet = new AddressFormSet(['relation'=>$customer->addresses(), 'data' => Input::old() ?: Input::all());
+```
+
+The validation and saving of formset is the symmetric with form.
+```php
+if(!$addressFormSet->isValid()) {
+    return Redirect::back()->withErrors($addressFormSet->errors())->withInput();
+}
+$addressFormSet->save();
+```
