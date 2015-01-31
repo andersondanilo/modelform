@@ -1,3 +1,6 @@
+![Travis](https://travis-ci.org/andersondanilo/modelform.svg?branch=master)
+[![Latest Stable Version](https://poser.pugx.org/andersondanilo/modelform/v/stable.svg)](https://packagist.org/packages/andersondanilo/modelform) [![Total Downloads](https://poser.pugx.org/andersondanilo/modelform/downloads.svg)](https://packagist.org/packages/andersondanilo/modelform) [![Latest Unstable Version](https://poser.pugx.org/andersondanilo/modelform/v/unstable.svg)](https://packagist.org/packages/andersondanilo/modelform) [![License](https://poser.pugx.org/andersondanilo/modelform/license.svg)](https://packagist.org/packages/andersondanilo/modelform)
+
 What is
 =======
 ModelForm is a PHP Form Abstraction for Laravel based on Django Forms and Formset, but completely integrated with the Laravel FormBuilder.
