@@ -1,6 +1,6 @@
 {
     "name": "andersondanilo/modelform",
-    "description": "Laravel 4 implementation of Django Form",
+    "description": "ModelForm is a PHP Form Abstraction for Laravel based on Django Forms and Formset, but completely integrated with the Laravel FormBuilder.",
     "keywords": ["modelform", "formbuilder", "form", "laravel", "django"],
     "license": "MIT",
     "require": {
