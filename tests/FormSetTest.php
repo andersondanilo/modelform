@@ -24,7 +24,7 @@ class MyForm extends Form
 
 class MyFormSet extends FormSet
 {
-    public function makeForm()
+    public function makeForm($model=null)
     {
         return new MyForm();
     }
@@ -46,7 +46,7 @@ class MyModelForm extends Form
 
 class MyModelFormSet extends FormSet
 {
-    public function makeForm()
+    public function makeForm($model=null)
     {
         return new MyModelForm();
     }
