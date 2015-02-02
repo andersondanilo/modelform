@@ -10,3 +10,9 @@ before_script:
 
 after_script:
   - "phpunit --testdox"
+  - "phpunit --coverage-clover build/logs/clover.xml"
+  - vendor/bin/test-reporter
+
+addons:
+  code_climate:
+    repo_token: e5f344c47b193e857a96fd9548bd2860f06970103bc0bc8abe206f4a420cef20
