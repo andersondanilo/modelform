@@ -117,11 +117,13 @@ class Field
             $realArguments[] = $this->htmlName;
             if($method == 'select')
                 $realArguments[] = $this->options;
-            if(!in_array($method, ['file', 'password']))
-                $realArguments[] = $this->value;
 
             if(in_array($method, array('checkbox', 'radio'))) {
-                $realArguments[] = array_shift($arguments) == $this->value;
+                $value = array_shift($arguments);
+                $realArguments[] = $value;
+                $realArguments[] = $value == $this->value;
+            } else if(!in_array($method, ['file', 'password', 'checkbox', 'radio'])) {
+                $realArguments[] = $this->value;
             }
 
             $options = array_shift($arguments);
